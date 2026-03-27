@@ -278,9 +278,32 @@ function injectMessageIds(messages: any[], state: DcpState): void {
       } else if (Array.isArray(msg.content)) {
         msg.content = [...msg.content, { type: "text", text: idTag }];
       }
-    } else if (role === "assistant" || role === "toolResult" || role === "bashExecution") {
+    } else if (role === "toolResult" || role === "bashExecution") {
       if (Array.isArray(msg.content)) {
         msg.content = [...msg.content, { type: "text", text: idTag }];
+      } else if (typeof msg.content === "string") {
+        msg.content = msg.content + idTag;
+      }
+    } else if (role === "assistant") {
+      if (Array.isArray(msg.content)) {
+        // Insert the ID tag before any tool_use (toolCall) blocks.
+        // Anthropic requires: thinking → text → tool_use.
+        // Appending after tool_use blocks violates that constraint.
+        const firstToolCallIdx = msg.content.findIndex(
+          (b: any) => b.type === "toolCall",
+        );
+        const idBlock = { type: "text", text: idTag };
+        if (firstToolCallIdx === -1) {
+          // No tool_use blocks — append as usual
+          msg.content = [...msg.content, idBlock];
+        } else {
+          // Insert immediately before the first tool_use block
+          msg.content = [
+            ...msg.content.slice(0, firstToolCallIdx),
+            idBlock,
+            ...msg.content.slice(firstToolCallIdx),
+          ];
+        }
       } else if (typeof msg.content === "string") {
         msg.content = msg.content + idTag;
       }

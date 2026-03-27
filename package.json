@@ -1,6 +1,6 @@
 {
   "name": "@complexthings/pi-dynamic-context-pruning",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "PI coding agent extension — Dynamic Context Pruning (DCP)",
   "type": "module",
   "pi": {
