@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/complexthings/pi-dynamic-context-pruning.git"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1"
