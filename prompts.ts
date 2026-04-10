@@ -13,7 +13,7 @@ You operate in a context-constrained environment. Manage context continuously to
 
 The ONLY tool you have for context management is \`compress\`. It replaces older conversation content with technical summaries you produce.
 
-\`<dcp-message-id>\` and \`<dcp-system-reminder>\` tags are environment-injected metadata. Do not output them.
+\`<dcp-id>\` and \`<dcp-system-reminder>\` tags are environment-injected metadata. Do not output them.
 
 THE PHILOSOPHY OF COMPRESS
 \`compress\` transforms conversation content into dense, high-fidelity summaries. This is not cleanup — it is crystallization. Your summary becomes the authoritative record of what transpired.
@@ -114,7 +114,7 @@ You specify boundaries by ID using the injected IDs visible in the conversation:
 - \`mNNN\` IDs identify raw messages (3 digits, zero-padded, e.g. \`m001\`, \`m042\`)
 - \`bN\` IDs identify previously compressed blocks
 
-Each message has an ID inside XML metadata tags like \`<dcp-message-id>...</dcp-message-id>\`.
+Each message has an ID inside XML metadata tags like \`<dcp-id>...</dcp-id>\`.
 The ID tag appears at the end of the message it belongs to — it identifies the message above it, not the one below it.
 Treat these tags as boundary metadata only, not as tool result content.
 
@@ -207,7 +207,7 @@ Prefer multiple short, closed ranges over one large range when several independe
 export const MANUAL_MODE_SYSTEM_PROMPT = `
 You are operating in DCP manual mode for context management.
 
-\`<dcp-message-id>\` and \`<dcp-system-reminder>\` tags are environment-injected metadata. Do not output them.
+\`<dcp-id>\` and \`<dcp-system-reminder>\` tags are environment-injected metadata. Do not output them.
 
 In manual mode you do NOT proactively compress conversation content. Compression is a deliberate, user-directed action.
 
