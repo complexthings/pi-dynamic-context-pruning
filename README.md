@@ -151,7 +151,7 @@ The extension is loaded by pi via [jiti](https://github.com/unjs/jiti) so TypeSc
 
 ## Contributors
 
-[![complexthings](https://github.com/complexthings.png?size=50)](https://github.com/complexthings) [@complexthings](https://github.com/complexthings)
-[![wassname](https://github.com/wassname.png?size=50)](https://github.com/wassname) [@wassname](https://github.com/wassname)
+[![complexthings](https://github.com/complexthings.png?size=50)](https://github.com/complexthings)
+[![wassname](https://github.com/wassname.png?size=50)](https://github.com/wassname) 
 
 Full contributor list: https://github.com/complexthings/pi-dynamic-context-pruning/graphs/contributors
