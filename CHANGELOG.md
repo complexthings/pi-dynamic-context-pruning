@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.7] - 2026-04-14
+
+### Fixed
+
+- **Infinity anchorTimestamp ghost block spiral** — When a `compress` range extended to the end of the conversation, `resolveAnchorTimestamp` returned `Infinity`. `JSON.stringify(Infinity)` serialises to `null`, so on session restore the corrupted block's timestamps coerced to `0` in JS overlap checks, making every new range appear to overlap the ghost block and trapping the model in a compression spiral (101 failures over 2 hours). `resolveAnchorTimestamp` now returns `endTimestamp + 1` instead of `Infinity`.
+- **Corrupted block propagation on session restore** — `index.ts` now filters out any persisted compression block whose `startTimestamp`, `endTimestamp`, or `anchorTimestamp` is non-finite before restoring state, preventing ghost blocks from surviving across sessions.
+- **Non-finite timestamp guard** — All code paths that create or apply compression blocks now validate timestamps are finite before proceeding, failing fast rather than silently corrupting state.
+- **Overlap error diagnostics** — Overlap error messages now include the existing block's timestamp range to aid debugging.
+- **Prompt tag name mismatch** — The prompt tag was named `<dcp-message-id>` but the code injected `<dcp-id>`; tag name corrected to `<dcp-id>` throughout `prompts.ts`.
+- **Duplicate test** — Removed a duplicate test case from `pruner.test.ts`.
+
+### Added
+
+- **Regression tests** — New test cases for the `Infinity` anchor scenario, `null`-timestamp corrupted blocks, and corrupted-block resilience on session restore.
+
+Thanks to [@wassname](https://github.com/wassname) for diagnosing and fixing the compression spiral root cause in [#3](https://github.com/complexthings/pi-dynamic-context-pruning/pull/3).
+
 ## [1.0.6] - 2026-04-09
 
 ### Fixed
