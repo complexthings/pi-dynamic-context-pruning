@@ -212,7 +212,7 @@ export function registerCompressTool(
             : 'none available — all visible messages are covered by existing blocks'
 
           throw new Error(
-            `Range {startId: "${startId}", endId: "${endId}"} overlaps existing summaries: ${overlapInfo}. ` +
+            `[compress] Range {startId: "${startId}", endId: "${endId}"} overlaps existing summaries: ${overlapInfo}. ` +
             `Available ranges: ${gapInfo}`,
           )
         }
