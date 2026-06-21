@@ -756,4 +756,41 @@ function findOrphanedToolUse(result: any[]): string | null {
   console.log("TEST 10 PASSED\n");
 }
 
+// ---------------------------------------------------------------------------
+// Test 11 — MESSAGE ID INJECTION IS IDEMPOTENT
+//
+// Pi may feed a previous context result back into another context pass. Existing
+// dcp-id tags must be stripped before new IDs are injected, otherwise the same
+// message accumulates duplicate visible tags such as repeated m108 blocks.
+// ---------------------------------------------------------------------------
+{
+  console.log("TEST 11: message ID injection is idempotent");
+
+  const messages: any[] = [
+    { role: "user", content: "hello", timestamp: 1000 },
+    { role: "assistant", content: [{ type: "toolCall", id: "toolu_abc", name: "read", arguments: {} }], timestamp: 2000 },
+    { role: "toolResult", toolCallId: "toolu_abc", toolName: "read", isError: false, content: [{ type: "text", text: "file content" }], timestamp: 3000 },
+  ];
+
+  const state = makeState();
+  const config = makeConfig();
+  const once = applyPruning(messages, state, config);
+  const twice = applyPruning(once, state, config);
+
+  const countIdTags = (msg: any, id: string): number => {
+    const text = Array.isArray(msg.content)
+      ? msg.content.map((block: any) => block.text ?? "").join("\n")
+      : String(msg.content ?? "");
+    const matches = text.match(new RegExp(`<dcp-id>${id}<\\/dcp-id>`, "g"));
+    return matches ? matches.length : 0;
+  };
+
+  assert.strictEqual(countIdTags(twice[0], "m001"), 1, "FAIL — user message should have one m001 tag");
+  assert.strictEqual(countIdTags(twice[1], "m002"), 1, "FAIL — assistant message should have one m002 tag");
+  assert.strictEqual(countIdTags(twice[2], "m003"), 1, "FAIL — toolResult message should have one m003 tag");
+  console.log("  PASS: repeated applyPruning calls keep one dcp-id per message");
+
+  console.log("TEST 11 PASSED\n");
+}
+
 console.log("All tests passed.");
