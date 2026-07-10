@@ -150,6 +150,7 @@ export function registerCompressTool(
         }
 
         // ── Overlap check against existing active blocks ─────────────────
+        const overlappingBlocks: CompressionBlock[] = []
         for (const existing of state.compressionBlocks) {
           if (!existing.active) continue
           // Skip blocks with corrupted timestamps
@@ -160,14 +161,61 @@ export function registerCompressTool(
             startTimestamp <= existing.endTimestamp &&
             existing.startTimestamp <= endTimestamp
           if (overlaps) {
-            throw new Error(
-              `Overlapping compression ranges are not supported. ` +
-              `New range (${startId}..${endId}) overlaps existing block ` +
-              `b${existing.id} "${existing.topic}" ` +
-              `(b${existing.id} covers ${existing.startTimestamp}..${existing.endTimestamp}, ` +
-              `new range covers ${startTimestamp}..${endTimestamp})`,
-            )
+            overlappingBlocks.push(existing)
           }
+        }
+
+        if (overlappingBlocks.length > 0) {
+          // Compute valid compressible gaps: raw message ranges not covered by any active block.
+          const activeBlocks = state.compressionBlocks
+            .filter(b => b.active && Number.isFinite(b.startTimestamp) && Number.isFinite(b.endTimestamp))
+            .sort((a, b) => a.startTimestamp - b.startTimestamp)
+
+          const sortedEntries = [...state.messageIdSnapshot.entries()]
+            .filter(([id]) => id.startsWith('m'))  // only mNNN ids
+            .filter(([, ts]) => ts >= startTimestamp && ts <= endTimestamp)  // only within requested range
+            .sort((a, b) => a[1] - b[1])
+
+          // Walk sorted messages, grouping consecutive uncovered ones into gap ranges
+          const gaps: string[] = []
+          let gapStart: string | null = null
+          let gapEnd: string | null = null
+
+          for (const [id, ts] of sortedEntries) {
+            const covered = activeBlocks.some(
+              b => ts >= b.startTimestamp && ts <= b.endTimestamp
+            )
+            if (!covered) {
+              if (gapStart === null) gapStart = id
+              gapEnd = id
+            } else {
+              if (gapStart !== null) {
+                gaps.push(`${gapStart}..${gapEnd}`)
+                gapStart = null
+                gapEnd = null
+              }
+            }
+          }
+          // Close trailing gap
+          if (gapStart !== null && gapEnd !== null) {
+            gaps.push(`${gapStart}..${gapEnd}`)
+          }
+
+          const overlapInfo = overlappingBlocks
+            .map(b => `b${b.id} "${b.topic}"`)
+            .join(', ')
+
+          const gapInfo = gaps.length > 0
+            ? gaps.map(g => {
+                const [s, e] = g.split('..')
+                return `{startId: "${s}", endId: "${e}"}`
+              }).join(', ')
+            : 'none available — all visible messages are covered by existing blocks'
+
+          throw new Error(
+            `[compress] Range {startId: "${startId}", endId: "${endId}"} overlaps existing summaries: ${overlapInfo}. ` +
+            `Available ranges within your requested range: ${gapInfo}`,
+          )
         }
 
         // ── Anchor: first raw message after the range ────────────────────
