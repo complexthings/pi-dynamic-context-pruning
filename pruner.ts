@@ -10,6 +10,9 @@ const ID_ELIGIBLE_ROLES = new Set(["user", "assistant", "toolResult", "bashExecu
 // Roles that are PI-internal and should pass through unchanged
 const PASSTHROUGH_ROLES = new Set(["compaction", "branch_summary", "custom_message"]);
 
+// Matches DCP message IDs previously injected into message content.
+const DCP_ID_TAG_RE = /\s*<dcp-id>m\d+<\/dcp-id>/g;
+
 /**
  * Simple token estimator: chars / 4, rounded.
  */
@@ -336,6 +339,37 @@ function applyToolOutputPruning(messages: any[], state: DcpState): void {
 }
 
 /**
+ * Remove previously injected message IDs so repeated context passes are idempotent.
+ */
+function stripExistingMessageIds(msg: any): void {
+  if (typeof msg.content === "string") {
+    msg.content = msg.content.replace(DCP_ID_TAG_RE, "").trimEnd();
+    return;
+  }
+
+  if (!Array.isArray(msg.content)) return;
+
+  const content = [];
+  for (const block of msg.content) {
+    if (
+      block &&
+      typeof block === "object" &&
+      block.type === "text" &&
+      typeof block.text === "string"
+    ) {
+      const text = block.text.replace(DCP_ID_TAG_RE, "").trimEnd();
+      if (text.length === 0) continue;
+      content.push(text === block.text ? block : { ...block, text });
+      continue;
+    }
+
+    content.push(block);
+  }
+
+  msg.content = content;
+}
+
+/**
  * Inject sequential message IDs into eligible messages.
  * Updates state.messageIdSnapshot.
  */
@@ -352,6 +386,8 @@ function injectMessageIds(messages: any[], state: DcpState): void {
     if (PASSTHROUGH_ROLES.has(role)) continue;
     // Skip non-eligible roles
     if (!ID_ELIGIBLE_ROLES.has(role)) continue;
+
+    stripExistingMessageIds(msg);
 
     const id = "m" + String(counter).padStart(3, "0");
     counter++;
